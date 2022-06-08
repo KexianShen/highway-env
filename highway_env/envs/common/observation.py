@@ -202,20 +202,17 @@ class KinematicObservation(ObservationType):
         if not self.env.road:
             return np.zeros(self.space().shape)
 
-        # Add ego-vehicle
-        df = pd.DataFrame.from_records([self.observer_vehicle.to_dict()])[self.features]
         # Add nearby traffic
         close_vehicles = self.env.road.close_vehicles_to(self.observer_vehicle,
                                                          self.env.PERCEPTION_DISTANCE,
-                                                         count=self.vehicles_count - 1,
+                                                         count=self.vehicles_count,
                                                          see_behind=self.see_behind,
                                                          sort=self.order == "sorted")
         if close_vehicles:
             origin = self.observer_vehicle if not self.absolute else None
-            df = pd.concat([df, pd.DataFrame.from_records(
+            df = pd.DataFrame.from_records(
                 [v.to_dict(origin, observe_intentions=self.observe_intentions)
-                 for v in close_vehicles[-self.vehicles_count + 1:]])[self.features]],
-                           ignore_index=True)
+                 for v in close_vehicles[-self.vehicles_count:]])
         # Normalize and clip
         if self.normalize:
             df = self.normalize_obs(df)
@@ -227,7 +224,8 @@ class KinematicObservation(ObservationType):
         df = df[self.features]
         obs = df.values.copy()
         if self.order == "shuffled":
-            self.env.np_random.shuffle(obs[1:])
+            # self.env.np_random.shuffle(obs[1:])
+            self.env.np_random.shuffle(obs)
         # Flatten
         return obs.astype(self.space().dtype)
 
